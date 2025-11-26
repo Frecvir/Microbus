@@ -1,0 +1,511 @@
+<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
+<meta charset="UTF-8" /> 
+     <title>Movimiento</title>
+     <link rel="icon" type="image/x-icon" href="./REF/rut.png">
+     <style>
+     </style>
+</head>
+<body>
+<canvas id="myCanvas">
+    <!--El elemento HTML canvas se puede utilizar para dibujar gráficos a través de 
+        secuencias de comandos (por lo general JavaScript ).-->
+</canvas>
+<script type="importmap"> 
+    {
+        "imports":{
+            "three": "./js/three.module.js",
+            "three/OrbitControls": "./js/OrbitControls.js" 
+        }
+}
+</script>
+<script type="module"> 
+    //👉🏽 Mandar llamar a la librería
+    import * as THREE from 'three'; 
+    //import {OrbitControls} from 'three/OrbitControls';
+    //console.log(OrbitControls);
+    import * as CANNON from './js/cannon-es.js';
+    import CannonDebugger from './js/cannon-es-debugger.js'
+    import {RoundedBoxGeometry} from "./js/RoundedBoxGeometry.js"
+
+    //👉🏽 Renderer - Realiza una conexión entre el código y el canvas
+    var renderer = new THREE.WebGLRenderer({canvas: document.getElementById('myCanvas'),antialias: true});
+    renderer.setPixelRatio(window.decivePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x034959);
+
+    //🎬 Creando nueva escena 
+    var scene = new THREE.Scene();
+
+    //🎥 Agregar una cámara de perspectiva
+    var camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 5000);
+    scene.add(camera);
+
+    //👉🏽Settings de la cámara
+    camera.position.set(0, 4, 25);
+
+    //👉🏽Añadiendo los OrbitControls
+    //var controls = new OrbitControls(camera, renderer.domElement);
+    //controls.enableDamping = true;
+    //controls.dampingFactor = 0.05;
+
+//gridhelper
+var gridhelper= new THREE.GridHelper(40,30,4,2);
+//scene.add(gridhelper);
+var axesHelper=new THREE.AxesHelper(50);
+//scene.add(axesHelper);
+
+//AÑADIRMUNDO Y GRAVEDAD
+const world = new CANNON.World();
+world.broadphase = new CANNON.SAPBroadphase(world);
+
+world.gravity.set(0, -9.82, 0); // Gravedad usando cannon
+world.defaultContactMaterial.friction=0;
+
+const groundMaterial = new CANNON.Material("groundMaterial");
+const wheelMaterial = new CANNON.Material("wheelMaterial");
+const wheelGroundMaterial = new CANNON.ContactMaterial(wheelMaterial, groundMaterial,{
+friction: 0.3,
+restitution: 0,
+contactEquationStiffness: 1000
+});
+//AGREGAR CAMARA
+
+world.addContactMaterial(wheelGroundMaterial);
+
+const groundBody = new CANNON.Body({
+type: CANNON.Body.STATIC,
+shape: new CANNON.Plane(),
+});
+groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+groundBody.position.y=0;
+world.addBody(groundBody);//////////////////////////////////////// configuración del cannon
+
+var camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 3000);
+camera.position.set(0,10,20);
+var gc = new THREE.Group();
+gc.position.set(-100, 5, 0);
+gc.add(camera);
+
+
+//luces
+var light = new THREE.PointLight(0x1BB3FF, 2.0, 200);
+light.castShadow = true;
+light.shadow.bias = 0.0001;
+light.shadow.mapSize.width = 2048 * 2;
+light.shadow.mapSize.height = 2048 * 2;
+light.position.set(60, 60, 10);
+var light2 = new THREE.AmbientLight(0xffffff, .3);
+scene.add(light, light2); //////////////////////////////// luces
+
+
+    // 🪄🪄 SECCIÓN DE CÓDIGO 🪄🪄
+    //BASE PARA REFERENCIA 
+
+//PISO
+var materailpis = new THREE.TextureLoader().load("./REF/pista.jpg");
+var piss = new THREE.MeshLambertMaterial({map:materailpis,side: THREE.DoubleSide});
+var geometry0 = new THREE.BoxGeometry(500,.1,500);
+var geometry1 = new THREE.BoxGeometry(3,3,3);
+var material1 = new THREE.MeshLambertMaterial({color: 0xcd6155});
+var material2 = new THREE.MeshLambertMaterial({color: 0xc556155});
+var material3 = new THREE.MeshLambertMaterial({color: 0xff0000});
+var mesh0 = new THREE.Mesh(geometry0, piss);
+mesh0.position.set(0, 0, 0); //
+mesh0.rotation.y = Math.PI / 2;
+
+
+// Cuerpo chasis
+var cuerpomic = new THREE.BoxGeometry(28, 3, 11.2); 
+var cuerpoMat = new THREE.MeshStandardMaterial({color: 0x058c45,side: THREE.DoubleSide});
+var cuerpo1 = new THREE.Mesh(cuerpomic, cuerpoMat);
+scene.add(cuerpo1);
+cuerpo1.position.set(0, -4, 0);
+
+// defensa
+var cuerpomic = new THREE.BoxGeometry(29, 1, 11.5); 
+var cuerpoMat = new THREE.MeshStandardMaterial({color: 0x474b4e,side: THREE.DoubleSide});
+var cuerpo2 = new THREE.Mesh(cuerpomic, cuerpoMat);
+//scene.add(cuerpo2);
+cuerpo2.position.set(0, -5.5, 0);
+
+// Techo
+var techomic = new RoundedBoxGeometry(27, 1, 9, 5, 1); 
+var techoMat = new THREE.MeshStandardMaterial({color: 0xffffff,side: THREE.DoubleSide});
+// (ancho, alto, profundidad, segmentos, radio redondeo)
+var techo = new THREE.Mesh(techomic, techoMat);
+//scene.add(techo);
+techo.position.set(.5, 4.5, 0);
+
+// Cuerpoo frente gris
+var cuGeo = new THREE.CylinderGeometry(6, 7.8, 7, 4); 
+var cuMat = new THREE.MeshStandardMaterial({color: 0xffffff,side: THREE.DoubleSide});
+var cuer1 = new THREE.Mesh(cuGeo, cuMat);
+//scene.add(cuer1);
+cuer1.position.set(8.4,1, 0);
+cuer1.rotation.y = Math.PI / 4;
+// Cuerpoo frente verde
+var cuGeo = new THREE.CylinderGeometry(5.5, 8.1, 7, 4); 
+var cuMat = new THREE.MeshStandardMaterial({color: 0x058c45,side: THREE.DoubleSide});
+var cuer2 = new THREE.Mesh(cuGeo, cuMat);
+//scene.add(cuer2);
+cuer2.position.set(8.4,1, 0);
+cuer2.rotation.y = Math.PI / 4;
+
+// Cuerpoo medio
+var cuaGeo = new THREE.CylinderGeometry(6, 7.8, 7, 4); 
+var cuaMat = new THREE.MeshStandardMaterial({color: 0xffffff,side: THREE.DoubleSide});
+var acuer = new THREE.Mesh(cuaGeo, cuaMat);
+//scene.add(acuer);
+acuer.position.set(0,1, 0);
+acuer.rotation.y = Math.PI / 4;
+// Cuerpoo medio verde
+var cuaGeo = new THREE.CylinderGeometry(5.5, 8.1, 7, 4);  
+var cuaMat = new THREE.MeshStandardMaterial({color: 0x058c45,side: THREE.DoubleSide});
+var acuer1 = new THREE.Mesh(cuaGeo, cuaMat);
+//scene.add(acuer1);
+acuer1.position.set(0,1, 0);
+acuer1.rotation.y = Math.PI / 4;
+
+// Cuerpoo atras
+var cubGeo = new THREE.CylinderGeometry(6, 7.8, 7, 4); 
+var cubMat = new THREE.MeshStandardMaterial({color: 0xffffff,side: THREE.DoubleSide});
+var bcuer = new THREE.Mesh(cubGeo, cubMat);
+//scene.add(bcuer);
+bcuer.position.set(-8.4,1, 0);
+bcuer.rotation.y = Math.PI / 4;
+// Cuerpoo atras
+var cubGeo = new THREE.CylinderGeometry(5.5, 8.1, 7, 4);  
+var cubMat = new THREE.MeshStandardMaterial({color: 0x058c45,side: THREE.DoubleSide});
+var bcuer1 = new THREE.Mesh(cubGeo, cubMat);
+//scene.add(bcuer1);
+bcuer1.position.set(-8.4,1, 0);
+bcuer1.rotation.y = Math.PI / 4;
+
+// espejos
+var espGeo = new THREE.CylinderGeometry(6, 7, 7, 4); 
+var esdGeo = new THREE.CylinderGeometry(6.3, 7.2, 3, 4); 
+var puerGeo = new THREE.CylinderGeometry(2.3, 2.9, 4.5, 4); 
+var apuerGeo = new THREE.CylinderGeometry(1.8, 2.9, 8, 4); 
+var espMat = new THREE.MeshStandardMaterial({color: 0x000000,side: THREE.DoubleSide});
+var espfrente = new THREE.Mesh(espGeo, espMat);
+var espatras = new THREE.Mesh(espGeo, espMat);
+var esp1der = new THREE.Mesh(esdGeo, espMat);
+var esp2der = new THREE.Mesh(esdGeo, espMat);
+var pizq = new THREE.Mesh(puerGeo, espMat);
+var apizq = new THREE.Mesh(apuerGeo, espMat);
+//scene.add(espfrente);
+//scene.add(espatras);
+//scene.add(esp1der);
+//scene.add(esp2der);
+//scene.add(pizq);
+//scene.add(apizq);
+espfrente.position.set(8.9,1, 0);
+espatras.position.set(-8.7,1, 0);
+esp1der.position.set(7.5,2, 0);
+esp2der.position.set(-4,2, 0);
+pizq.position.set(11,-2, 3.8);
+apizq.position.set(-11,-0.5, 3.8);
+espfrente.rotation.y = Math.PI / 4;
+espatras.rotation.y = Math.PI / 4;
+esp1der.rotation.y = Math.PI / 4;
+esp2der.rotation.y = Math.PI / 4;
+pizq.rotation.y = Math.PI / 4;
+apizq.rotation.y = Math.PI / 4;
+
+// Ruedas
+var ruedaGeo = new THREE.CylinderGeometry(2, 2, 1.5, 32);
+var ruedaMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+var ruedadd = new THREE.Mesh(ruedaGeo, ruedaMat);
+var ruedadi = new THREE.Mesh(ruedaGeo,ruedaMat);
+var ruedaad = new THREE.Mesh(ruedaGeo,ruedaMat);
+var ruedaai = new THREE.Mesh(ruedaGeo,ruedaMat);
+ruedadd.rotation.x = Math.PI / 2;
+ruedadi.rotation.x = Math.PI / 2;
+ruedaad.rotation.x = Math.PI / 2;
+ruedaai.rotation.x = Math.PI / 2;
+ruedadd.position.set(7, -6, 5.2);
+ruedadi.position.set(7, -6, -5.2);
+ruedaad.position.set(-6, -6, 5.2);
+ruedaai.position.set(-6, -6, -5.2);
+//scene.add(ruedadd);
+//scene.add(ruedadi);
+//scene.add(ruedaad);
+//scene.add(ruedaai);
+
+// RINES
+var rinGeo = new THREE.CylinderGeometry(1, 1, 1.8, 32);
+var rinMat = new THREE.MeshStandardMaterial({ color: 0xcdcdcd });
+var rindd = new THREE.Mesh(rinGeo, rinMat);
+var rindi = new THREE.Mesh(rinGeo,rinMat);
+var rinad = new THREE.Mesh(rinGeo,rinMat);
+var rinai = new THREE.Mesh(rinGeo,rinMat);
+rindd.rotation.x = Math.PI / 2;
+rindi.rotation.x = Math.PI / 2;
+rinad.rotation.x = Math.PI / 2;
+rinai.rotation.x = Math.PI / 2;
+rindd.position.set(7, -6, 5.2);
+rindi.position.set(7, -6, -5.2);
+rinad.position.set(-6, -6, 5.2);
+rinai.position.set(-6, -6, -5.2);
+//scene.add(rindd);
+//scene.add(rindi);
+//scene.add(rinad);
+//scene.add(rinai);
+
+//CENTRO RINES
+var crinGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.9, 32);
+var crinMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+var crindd = new THREE.Mesh(crinGeo,crinMat);
+var crindi = new THREE.Mesh(crinGeo,crinMat);
+var crinad = new THREE.Mesh(crinGeo,crinMat);
+var crinai = new THREE.Mesh(crinGeo,crinMat);
+crindd.rotation.x = Math.PI / 2;
+crindi.rotation.x = Math.PI / 2;
+crinad.rotation.x = Math.PI / 2;
+crinai.rotation.x = Math.PI / 2;
+crindd.position.set(10, -6, 4.5);
+crindi.position.set(10, -6, -4.5);
+crinad.position.set(-6, -6, 4.5);
+crinai.position.set(-6, -6, -4.5);
+//scene.add(crindd);
+//scene.add(crindi);
+//scene.add(crinad);
+//scene.add(crinai);
+
+//LETRERO
+var letr = new THREE.PlaneGeometry(1.5, 1);
+var letra = new THREE.PlaneGeometry(7, .8);
+var texx = new THREE.TextureLoader().load("./REF/letr.jpg");
+var texxa = new THREE.TextureLoader().load("./REF/letra.png");
+var texxa1 = new THREE.TextureLoader().load("./REF/pla.png");
+var letre = new THREE.MeshLambertMaterial({map:texx,side: THREE.DoubleSide});
+var letrea = new THREE.MeshLambertMaterial({map:texxa,side: THREE.DoubleSide});
+var plac = new THREE.MeshLambertMaterial({map:texxa1,side: THREE.DoubleSide});
+var letrero = new THREE.Mesh(letr, letre);
+var letreroa = new THREE.Mesh(letra, letrea);
+var placa = new THREE.Mesh(letr, plac);
+//scene.add(letrero);
+//scene.add(letreroa);
+//scene.add(placa);
+letrero.rotation.y = Math.PI / 2;
+letreroa.rotation.y = Math.PI / 2;
+placa.rotation.y = Math.PI / 2;
+letrero.position.set(13.8, 0, 3.5);
+letreroa.position.set(14, 4.5, 0);
+placa.position.set(-14.7, -5, 0);
+
+// focos
+var focos = new THREE.BoxGeometry(1.6, 1, 1.6); 
+var fbocos = new THREE.BoxGeometry(1.6, .5, 1.6); 
+var focoss = new THREE.BoxGeometry(1.6, 1, 1.6); 
+var fbocoss = new THREE.MeshLambertMaterial({color: 0xe3682c,side: THREE.DoubleSide});
+var fder = new THREE.Mesh(focos, focoss);
+var fizq = new THREE.Mesh(focos, focoss);
+var fbder = new THREE.Mesh(fbocos, fbocoss);
+var fbizq = new THREE.Mesh(fbocos, fbocoss);
+//scene.add(fder);
+//scene.add(fizq);
+//scene.add(fbder);
+//scene.add(fbizq);
+fder.position.set(13.4, -3, -4.4);
+fizq.position.set(13.4, -3, 4.4);
+fbder.position.set(13.4, -4, -4.4);
+fbizq.position.set(13.4, -4, 4.4);
+
+//LUCES FAROS FRENTE
+var lightf = new THREE.PointLight(0xe3682c, 1, 100);
+lightf.position.set(14, -3, -5.5);
+//scene.add(lightf);
+var lightf2 = new THREE.PointLight(0xe3682c, 1, 100);
+lightf2.position.set(14, -3, 5.5);
+//scene.add(lightf2);
+
+//LUCES FAROS Atras
+var lightf3 = new THREE.PointLight(0xe3682c, 1, 100);
+lightf3.position.set(-16, -3, -5.5);
+//scene.add(lightf3);
+var lightf4 = new THREE.PointLight(0xe3682c, 1, 100);
+lightf4.position.set(-16.5, -3, 5.5);
+//scene.add(lightf4);
+
+//CAJA PARA MEDIR
+var box = new THREE.BoxGeometry(1.6, 1, 1.6); 
+var caja = new THREE.MeshLambertMaterial({color: 0xffffff,side: THREE.DoubleSide});
+var cajaa = new THREE.Mesh(box, caja);
+//scene.add(cajaa);
+cajaa.position.set(0, 0 ,0);
+
+
+// focos traseros
+var f1 = new THREE.BoxGeometry(2, .8, .5); 
+var fa = new THREE.MeshLambertMaterial({color: 0xe3682c});
+var fb = new THREE.MeshLambertMaterial({color: 0xef280f});
+var fc = new THREE.MeshLambertMaterial({color: 0xcccccc});
+var f12 = new THREE.Mesh(f1, fa);
+var f13 = new THREE.Mesh(f1, fb);
+var f1c = new THREE.Mesh(f1, fc);
+var fd1a = new THREE.Mesh(f1, fa);
+var fd1b = new THREE.Mesh(f1, fb);
+var fd1c = new THREE.Mesh(f1, fc);
+//scene.add(f12);
+//scene.add(f13);
+//scene.add(f1c);
+//scene.add(fd1a);
+//scene.add(fd1b);
+//scene.add(fd1c);
+f12.position.set(-13.1, -3.65, -4.6);
+f13.position.set(-13.1, -3.65, -4);
+f1c.position.set(-13.1, -3.65, -3.4);
+fd1a.position.set(-13.1, -3.65, 4.6);
+fd1b.position.set(-13.1, -3.65, 4);
+fd1c.position.set(-13.1, -3.65, 3.4);
+
+//AGRUPACION DEL CARRO
+var carrito = new THREE.Group();
+carrito.add(cuerpo1,cuerpo2,techo,cuer1, cuer2,acuer, acuer1,bcuer, bcuer1,espfrente, 
+espatras, esp1der, esp2der, pizq, apizq,ruedadd, ruedadi, ruedaad, ruedaai,rindd, 
+rindi, rinad, rinai,crindd, crindi, crinad, crinai,letrero, letreroa,fder, fizq, 
+fbder, fbizq,f12, f13, f1c, fd1a, fd1b, fd1c, placa, gc,lightf,lightf2,lightf3,lightf4);   
+//DOBLE AGRUPACION
+//scene.add(carrito);
+//carrito.rotation.y=3.14159;
+carrito.rotation.y=-1.6;
+var gr1 = new THREE.Group();
+gr1.position.y=15;
+//gr1.scale.set(1.1,1.1,1.1);
+gr1.add(carrito);
+
+
+//RELOJ PARA LUCES
+var clock = new THREE.Clock();
+var velocidad = 3;
+var velocidadf = 4;
+var amplitud = 0.8;
+
+
+function carrito_movimiento_sin() {
+    carrito.position.y = Math.sin(clock.getElapsedTime() * velocidad) * amplitud;
+}
+ 
+function luces_focos() {
+
+    lightf.intensity = (Math.cos(clock.getElapsedTime() * velocidadf) * 0.5) + 0.5;
+    lightf2.intensity = (Math.cos(clock.getElapsedTime() * velocidadf) * 0.5) + 0.5;
+    lightf3.intensity = (Math.cos(clock.getElapsedTime() * velocidadf) * 0.5) - 0.1;
+    lightf4.intensity = (Math.cos(clock.getElapsedTime() * velocidadf) * 0.5) -0.1;
+ 
+    fa.opacity = (Math.cos(clock.getElapsedTime() * velocidadf) * -1) + 1;
+    fb.opacity = (Math.cos(clock.getElapsedTime() * velocidadf) * -1) + 1;
+    fc.opacity = (Math.cos(clock.getElapsedTime() * velocidadf) * -1) + 1;
+}
+ 
+
+//canon masa al objeto
+const gr1Body = new CANNON.Body({ 
+mass: 1,
+material:groundMaterial,
+position:new CANNON.Vec3(0,5,0),
+shape: new CANNON.Box(new CANNON.Vec3(13,8,5))
+});
+//gr1Body.addShape(gr1Shape);
+gr1Body.position.copy(gr1.position);
+world.addBody(gr1Body); 
+
+scene.add(mesh0,gr1);
+
+function aplicaFisicaAGrafico() {
+gr1.position.copy(gr1Body.position);
+gr1.quaternion.copy(gr1Body.quaternion);
+}//////////////////////////////////////////////////////aplicamos las propiedades fisicas a las geometrias 
+/////////////////////////////////////////////////////////////////////////Los cuaterniones en física representan
+// rotaciones en el espacio, véase cuaterniones y rotación en el espacio. Además tienen aplicaciones en el electromagnetismo y la mecánica cuántica. 
+//se utilizan a menudo en gráficos por computadora (y en el análisis geométrico asociado) para representar 
+// la orientación de un objeto en un espacio tridimensional. Las ventajas son: conforman una representación 
+// no singular (comparada con, por ejemplo, los ángulos de Euler), más compacta y más rápida que las matrices, 
+// en términos computacionales. Debido a lo expuesto, es común el uso de esta notación en el campo de la robótica, 
+// debido a que permite en ciertas situaciones, mediante cuaterniones unitarios, abstraer rotaciones y traslaciones 
+// con cierta simplicidad, permitiendo la obtención de la orientación relativa entre sistemas de coordenadas.
+
+// 🎮🎮🎮 Interacción  🎮🎮🎮///////////////////////////////////////////////////////////////////////
+
+const moveSpeed = 20;
+const rotationSpeed = 5;
+const keys = {};
+
+// Manejo de eventos de teclado
+window.addEventListener('keydown', (event) => {
+keys[event.code] = true;
+});
+
+window.addEventListener('keyup', (event) => {
+keys[event.code] = false;
+});
+
+const acceleration = .5;
+const deceleration = 0.1; // Freno cuando no se presionan teclas
+let currentSpeed = 0;
+
+function animate() {
+ 
+  const forward = new THREE.Vector3(0, 0, -1); // Dirección hacia adelante en el espacio local
+
+  // Obtener la dirección hacia adelante del objeto usando su orientación (quaternion)
+  gr1.getWorldDirection(forward); // Obtén la dirección global
+  forward.normalize(); // Asegúrate de que esté normalizada para usarla como dirección
+
+  // Asegúrate de aplicar la dirección según la rotación de gr1
+  if (keys['KeyW']) {
+    currentSpeed = Math.min(currentSpeed + acceleration, moveSpeed);
+  } else if (keys['KeyS']) {
+    currentSpeed = Math.max(currentSpeed - acceleration, -moveSpeed);
+  } else {
+    if (currentSpeed > 0) {
+            currentSpeed = Math.max(currentSpeed - deceleration, 0); // Desacelerar hasta 0
+        } else if (currentSpeed < 0) {
+            currentSpeed = Math.min(currentSpeed + deceleration, 0); // Desacelerar hasta 0
+        }
+  }
+
+  // Aplicar la velocidad calculada
+  gr1Body.velocity.set(forward.x * currentSpeed, gr1Body.velocity.y, forward.z * currentSpeed);
+
+
+  // Rotación
+  if (keys['KeyA']) {
+    gr1Body.angularVelocity.y = rotationSpeed; // Rotar a la izquierda
+  } else if (keys['KeyD']) {
+    gr1Body.angularVelocity.y = -rotationSpeed; // Rotar a la derecha
+  } else {
+    gr1Body.angularVelocity.y = 0; // Detener la rotación
+  }
+  gr1Body.angularVelocity.set(0, gr1Body.angularVelocity.y, 0);// anular rotaciones no deseadas
+  gr1Body.quaternion.x=0;
+    gr1Body.quaternion.z=0;
+    gr1.quaternion.x=gr1Body.quaternion.x;
+    gr1.quaternion.z=gr1Body.quaternion.z;
+
+}
+
+      //🎰🎰Rendering y animación
+      requestAnimationFrame(render);
+      function render() {
+        luces_focos();
+      //🪄🪄 Animación
+  //world.fixedStep();
+  aplicaFisicaAGrafico();
+  animate();
+  //cannonDebug.update(); ///////////se actualiza la visualización del debugger
+
+world.step(1 / 60); // Actualizar el mundo físico
+      //controls.update();
+
+      //Llamado para renderizar y volver a llamar a la misma función (render)
+camera.lookAt(gr1.position);
+renderer.render(scene, camera);
+requestAnimationFrame(render);
+      }
+</script>
+</body>
+</html>
